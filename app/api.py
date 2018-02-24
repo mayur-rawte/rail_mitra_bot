@@ -16,7 +16,7 @@ class RailMitraAPI(Resource):
         args = self.req_parse.parse_args()
         if args['hub.verify_token'] == '2318934571':
             print('verified')
-            return args['hub.challenge']
+            return args['hub.challenge'].replace("\"", '')
 
     def post(self):
         data = request.get_json()
