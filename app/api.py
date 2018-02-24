@@ -29,6 +29,7 @@ class RailMitraAPI(Resource):
                         if api_ai_text['result']['parameters']['sourceStation'] == '' or \
                                 api_ai_text['result']['parameters']['DestinationStation'] == '':
                             facebook_functions.post_facebook_message_normal(fb_id,
-                                                                            'Something is missing ! Type \'help\' for supported commands')
+                                                                            'Something is missing ! Type \'help\' for '
+                                                                            'supported commands')
                     else:
                         facebook_functions.post_facebook_message_normal(fb_id, 'Hello there!')
