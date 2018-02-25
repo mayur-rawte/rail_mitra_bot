@@ -2,51 +2,103 @@ import json
 import requests
 from bs4 import BeautifulSoup
 
+from app.rail_api import RailMitra
 from function import page_url_with_token
 
+headers = {'Content-Type': 'application/json'}
 
-def post_facebook_message_normal(fbid, recevied_message):
-    response_msg = json.dumps({"recipient": {"id": fbid}, "message": {"text": recevied_message}})
-    status = requests.post(page_url_with_token, headers={"Content-Type": "application/json"}, data=response_msg)
+
+def prepare_message(fb_id, message_type, data):
+    prepared_message = {'recipient': {'id': fb_id}}
+    if message_type == 'text':
+        prepared_message['message'] = {'text': data}
+    elif message_type == 'buttons':
+        prepared_message['message'] = {'attachment': {'type': 'template',
+                                                      'payload':
+                                                          {'template_type': 'button',
+                                                           'text': data['text'],
+                                                           'buttons': data['Buttons']
+                                                           }
+                                                      }
+                                       }
+    elif message_type == 'template':
+        result_title = data['trainName']
+        result_title += 'is'
+        result_title += data['delayTime']
+        result_title += ' Arrival '
+        result_title += data['actArTime'][-5:]
+        result_title += " Actual: "
+        result_title += data['schArTime'][-5:]
+        result_title += data['actArTime']
+        prepared_message['message'] = {"attachment": {"type": "template",
+                                                      "payload":
+                                                          {"template_type": "generic",
+                                                           "elements":
+                                                               [
+                                                                   {"title": result_title,
+                                                                    "image_url": "http://toons.artie.com/gifs/arg-newtrain-crop.gif",
+                                                                    "subtitle": data['lastLocation']
+                                                                    }
+                                                               ]
+                                                           }
+                                                      }
+                                       }
+    print(prepared_message)
+    return json.dumps(prepared_message)
+
+
+def post_facebook_message_normal(fb_id, recevied_message):
+    response_msg = prepare_message(fb_id, 'text', recevied_message)
+    status = requests.post(page_url_with_token, headers=headers, data=response_msg)
     print(status.json())
 
 
 def post_facebook_buttons(fbid, data):  # this receives a array of facebook button json
-    response_msg = json.dumps({"recipient": {"id": fbid}, "message": {"attachment": {"type": "template", "payload": {
-        "template_type": "button", "text": data['text'], "buttons": data['Buttons']}}}})
+    response_msg = prepare_message(fbid, 'buttons', data)
     # print response_msg
-    status = requests.post(page_url_with_token, headers={"Content-Type": "application/json"}, data=response_msg)
+    status = requests.post(page_url_with_token, headers=headers, data=response_msg)
     print(status.json())
 
 
-#
-# def post_running_status_reply(fbid, data):
-#     data = json.loads(data)
-#     resultData = TrainRunningStatus(data['prevData']['trainNo'], data['jStation'], data['prevData']['jDate'],
-#                                     data['prevData']['jDateMap'], data['prevData']['jDateDay'])
-#     if "err" in resultData:
-#         post_facebook_message_normal(fbid, resultData['err'])
-#         return None
-#     else:
-#         rsData = {"recipient": {"id": fbid}, "message": {"attachment": {"type": "template",
-#                                                                         "payload": {"template_type": "generic",
-#                                                                                     "elements": [{"title": resultData[
-#                                                                                                                'trainName'] + " is " +
-#                                                                                                            resultData[
-#                                                                                                                'delayTime'] + " Arrival : " +
-#                                                                                                            resultData[
-#                                                                                                                'actArTime'][
-#                                                                                                            -5:] + " Actual : " +
-#                                                                                                            resultData[
-#                                                                                                                'schArTime'][
-#                                                                                                            -5:],
-#                                                                                                   "image_url": "http://toons.artie.com/gifs/arg-newtrain-crop.gif",
-#                                                                                                   "subtitle":
-#                                                                                                       resultData[
-#                                                                                                           'lastLocation']}]}}}}
-#         status = requests.post(page_url_with_token, headers={"Content-Type": "application/json"},
-#                                data=json.dumps(rsData))
-#         print(status.json())
+def post_facebook_message_missing_params(fb_id):
+    response_msg = prepare_message(fb_id, 'text', 'Something is missing ! Type \'help\' for supported commands')
+    status = requests.post(page_url_with_token, headers=headers, data=response_msg)
+    print(status.json())
+
+
+def post_station_options_for_live_status(fb_id, train_no, station):
+    rail_mitra = RailMitra()
+    station_list_data = rail_mitra.get_stations_from_train_number(train_no)
+    button_list = []
+
+    def pps(k, v):
+        payload = json.dumps({"jStation": k, "prevData": station_list_data['originalReq']})
+        button_list.append({"type": "postback", "title": v, "payload": payload})
+
+    [pps(k, v) for k, v in station_list_data['stations'].iteritems() if station.lower() in v.lower()]
+    if not button_list:
+        post_facebook_message_normal(fb_id,
+                                     'We did not find any related station with this train. Did you spell it correctly. Please try again ')
+    else:
+        post_running_status_reply(fb_id, button_list[0]['payload'])
+
+
+def post_running_status_reply(fb_id, data):
+    data = json.loads(data)
+    rail_mitra = RailMitra()
+    result_data = rail_mitra.get_running_status(data['prevData']['trainNo'],
+                                                data['jStation'],
+                                                data['prevData']['jDate'],
+                                                data['prevData']['jDateMap'],
+                                                data['prevData']['jDateDay'])
+    if "err" in result_data:
+        post_facebook_message_normal(fb_id, result_data['err'])
+        return None
+    else:
+        request_data = prepare_message(fb_id, 'template', result_data)
+        status = requests.post(page_url_with_token, headers=headers, data=json.dumps(request_data))
+        print(status.json())
+
 
 def post_generic_template(data):
     # rsData = {"recipient": {"id": fbid }, "message": {"attachment": {"type": "template", "payload": {"template_type": "generic", "elements": [{"title": resultData['trainName'] + " is "+ resultData['delayTime'] +" Arrival : "+ resultData['actArTime'][-5:] +" Actual : "+ resultData['schArTime'][-5:], "image_url": "http://toons.artie.com/gifs/arg-newtrain-crop.gif", "subtitle": resultData['lastLocation'] } ] } } } }
