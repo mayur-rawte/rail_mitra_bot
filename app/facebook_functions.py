@@ -157,3 +157,35 @@ def sendAttachment(fbid, data):
     response_msg = json.dumps({"recipient": {"id": fbid}, "message": data})
     status = requests.post(page_url_with_token, headers={"Content-Type": "application/json"}, data=response_msg)
     print(status.json())
+
+
+def post_help_message(fb_id):
+    response_message = {
+        "recipient": {"id": fb_id},
+        "message":
+            {"attachment":
+                 {"type": "template",
+                  "payload": {"template_type": "generic",
+                              "elements": [
+                                  {"title": "I am here to help you !",
+                                   "image_url": "https://s-media-cache-ak0.pinimg.com/736x/1a/22/8a/1a228a1d771c36dbe7b301a5a1d608fa--cv-writing-service-writing-services.jpg",
+                                   "subtitle": "Below are some queries you can ask me"
+                                   }
+                              ]
+                              }
+                  }
+             }
+    }
+    post_generic_template(response_message)
+
+    # rsData = {"recipient": {"id": fbid}, "message": {"attachment": {"type": "template",
+    #                                                               "payload": {"template_type": "generic",
+    #                                                                           "elements": [{
+    #                                                                                            "title": "FromStation <space> to <space> ToStation , Example : Bhopal to Burhanpur",
+    ##                                                                                            "image_url": "https://ci.memecdn.com/9785823.jpg",
+    #                                                                                           "subtitle": "For Train between these station in next 4 hours"}]}}}}
+    # railapi.post_generic_template(rsData)
+    post_facebook_message_normal(fb_id,
+                                 "For Running train status you can ask \n\nFind status for 11057 at bhopal \n\nGet me live status for 11057 at Bhopal \n\nI am at Bhopal station waiting for 11057 ")
+    post_facebook_message_normal(fb_id,
+                                 "For Trains between status within next 4 hours \n\nLive station for bhopal to goa \n\nTrain between Bhopal to goa \n\nBhopal to goa or as you wish to ask me")
