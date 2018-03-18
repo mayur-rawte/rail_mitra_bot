@@ -21,7 +21,7 @@ def prepare_message(fb_id, message_type, data):
                                                            }
                                                       }
                                        }
-    elif message_type == 'template':
+    elif message_type == 'train_status_reply':
         result_title = data['trainName']
         result_title += 'is'
         result_title += data['delayTime']
@@ -62,6 +62,12 @@ def post_facebook_buttons(fbid, data):  # this receives a array of facebook butt
 
 def post_facebook_message_missing_params(fb_id):
     response_msg = prepare_message(fb_id, 'text', 'Something is missing ! Type \'help\' for supported commands')
+    status = requests.post(page_url_with_token, headers=headers, data=response_msg)
+    print(status.json())
+
+
+def post_facebook_train_status_response(fb_id, response_data):
+    response_msg = prepare_message(fb_id, 'train_status_reply', response_data)
     status = requests.post(page_url_with_token, headers=headers, data=response_msg)
     print(status.json())
 

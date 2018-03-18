@@ -1,13 +1,7 @@
 import json
 from flask import request
 from flask_restful import reqparse, Resource
-from app import facebook_functions, rail_api
-
-from app.helper import extract_data_from_api_ai
 from app.main_function import process_simple_message_request, process_postback_message_request
-from app.rail_api import RailMitra
-
-rail_mitra = RailMitra()
 
 
 class RailMitraAPI(Resource):
@@ -27,13 +21,7 @@ class RailMitraAPI(Resource):
         for entry in data['entry']:
             for message in entry['messaging']:
                 fb_id = message['sender']['id']
-                try:
-                    if 'message' in message:
-                        process_simple_message_request(message['message']['text'], fb_id)
-                    elif 'postback' in message:
-                        process_postback_message_request(message['postback']['payload'], fb_id)
-                except Exception as e:
-                    print('exception')
-                    print(e)
-
-
+                if 'message' in message:
+                    process_simple_message_request(message['message']['text'], fb_id)
+                elif 'postback' in message:
+                    process_postback_message_request(message['postback']['payload'], fb_id)

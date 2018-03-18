@@ -10,7 +10,7 @@ page_url_with_token = 'https://graph.facebook.com/v2.9/me/messages?access_token=
 
 
 class RailMitra:
-    def __init__():
+    def __init__(self):
         pass
 
     @staticmethod
